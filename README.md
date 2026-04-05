@@ -52,7 +52,7 @@ backend zynn/
 
 ### 2. Install dependencies
 ```bash
-cd "backend zynn"
+cd "backend zorvyn"
 npm install
 ```
 

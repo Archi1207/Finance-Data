@@ -1,3 +1,10 @@
+/**
+ * @swagger
+ * tags:
+ *   name: Dashboard
+ *   description: Summary analytics and trend data
+ */
+
 const express = require('express');
 const { query } = require('express-validator');
 const db = require('../config/database');
@@ -9,6 +16,18 @@ const router = express.Router();
 // All dashboard routes require authentication
 router.use(authenticate);
 
+/**
+ * @swagger
+ * /api/dashboard/summary:
+ *   get:
+ *     summary: Total income, expenses, net balance and transaction count
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard summary totals
+ */
 // ── GET /api/dashboard/summary ── all roles ───────────────────────────────────
 // Total income, total expenses, net balance, transaction count
 router.get('/summary', authorize('viewer', 'analyst', 'admin'), (req, res) => {
@@ -33,6 +52,18 @@ router.get('/summary', authorize('viewer', 'analyst', 'admin'), (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/dashboard/category-totals:
+ *   get:
+ *     summary: Totals grouped by category and type (analyst, admin)
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Category breakdown
+ */
 // ── GET /api/dashboard/category-totals ── analyst, admin ─────────────────────
 // Total amount grouped by category and type
 router.get('/category-totals', authorize('analyst', 'admin'), (req, res) => {
@@ -49,6 +80,25 @@ router.get('/category-totals', authorize('analyst', 'admin'), (req, res) => {
   res.json({ status: 'success', data: { categories: rows } });
 });
 
+/**
+ * @swagger
+ * /api/dashboard/trends:
+ *   get:
+ *     summary: Monthly or weekly income vs expense trends (analyst, admin)
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: year
+ *         schema: { type: integer, example: 2026 }
+ *       - in: query
+ *         name: period
+ *         schema: { type: string, enum: [monthly, weekly], default: monthly }
+ *     responses:
+ *       200:
+ *         description: Trend data over time
+ */
 // ── GET /api/dashboard/trends ── analyst, admin ───────────────────────────────
 // Monthly income vs expense totals (with optional year filter)
 router.get('/trends', authorize('analyst', 'admin'), [
@@ -94,6 +144,22 @@ router.get('/trends', authorize('analyst', 'admin'), [
   res.json({ status: 'success', data: { period: groupLabel, trends: rows } });
 });
 
+/**
+ * @swagger
+ * /api/dashboard/recent:
+ *   get:
+ *     summary: Most recent transactions (all roles)
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10, maximum: 50 }
+ *     responses:
+ *       200:
+ *         description: List of recent transactions
+ */
 // ── GET /api/dashboard/recent ── all roles ────────────────────────────────────
 // Most recent N transactions (default 10)
 router.get('/recent', authorize('viewer', 'analyst', 'admin'), [
@@ -116,6 +182,25 @@ router.get('/recent', authorize('viewer', 'analyst', 'admin'), [
   res.json({ status: 'success', data: { recent: rows } });
 });
 
+/**
+ * @swagger
+ * /api/dashboard/top-categories:
+ *   get:
+ *     summary: Top spending/income categories (analyst, admin)
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 5, maximum: 20 }
+ *       - in: query
+ *         name: type
+ *         schema: { type: string, enum: [income, expense], default: expense }
+ *     responses:
+ *       200:
+ *         description: Top categories by total amount
+ */
 // ── GET /api/dashboard/top-categories ── analyst, admin ──────────────────────
 // Top N spending categories
 router.get('/top-categories', authorize('analyst', 'admin'), [

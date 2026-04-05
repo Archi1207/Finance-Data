@@ -1,3 +1,10 @@
+/**
+ * @swagger
+ * tags:
+ *   name: Transactions
+ *   description: Financial records CRUD and filtering
+ */
+
 const express = require('express');
 const { body, param, query } = require('express-validator');
 const db = require('../config/database');
@@ -32,6 +39,42 @@ const txBodyRules = [
     .withMessage('Notes must not exceed 500 characters.'),
 ];
 
+/**
+ * @swagger
+ * /api/transactions:
+ *   get:
+ *     summary: List transactions (with optional filtering and pagination)
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema: { type: string, enum: [income, expense] }
+ *       - in: query
+ *         name: category
+ *         schema: { type: string }
+ *       - in: query
+ *         name: from
+ *         schema: { type: string, example: '2026-01-01' }
+ *       - in: query
+ *         name: to
+ *         schema: { type: string, example: '2026-12-31' }
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *     responses:
+ *       200:
+ *         description: Paginated list of transactions
+ *       401:
+ *         description: Not authenticated
+ */
 // ── GET /api/transactions ── viewer, analyst, admin ───────────────────────────
 router.get('/', authorize('viewer', 'analyst', 'admin'), [
   query('type').optional().isIn(['income', 'expense']).withMessage('type must be income or expense.'),
@@ -77,6 +120,29 @@ router.get('/', authorize('viewer', 'analyst', 'admin'), [
   });
 });
 
+/**
+ * @swagger
+ * /api/transactions/{id}:
+ *   get:
+ *     summary: Get a single transaction by ID
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Transaction found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Transaction'
+ *       404:
+ *         description: Transaction not found
+ */
 // ── GET /api/transactions/:id ── viewer, analyst, admin ───────────────────────
 router.get('/:id', authorize('viewer', 'analyst', 'admin'), [
   param('id').isInt({ min: 1 }).withMessage('Invalid transaction ID.'),
@@ -94,6 +160,33 @@ router.get('/:id', authorize('viewer', 'analyst', 'admin'), [
   res.json({ status: 'success', data: { transaction: tx } });
 });
 
+/**
+ * @swagger
+ * /api/transactions:
+ *   post:
+ *     summary: Create a new transaction (admin only)
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [amount, type, category, date]
+ *             properties:
+ *               amount:   { type: number,  example: 500.00 }
+ *               type:     { type: string,  enum: [income, expense] }
+ *               category: { type: string,  example: Salary }
+ *               date:     { type: string,  example: '2026-04-01' }
+ *               notes:    { type: string,  example: Monthly salary }
+ *     responses:
+ *       201:
+ *         description: Transaction created
+ *       403:
+ *         description: Forbidden — admin only
+ */
 // ── POST /api/transactions ── admin only ──────────────────────────────────────
 router.post('/', authorize('admin'), txBodyRules, validate, (req, res) => {
   const { amount, type, category, date, notes = null } = req.body;
@@ -114,6 +207,36 @@ router.post('/', authorize('admin'), txBodyRules, validate, (req, res) => {
   res.status(201).json({ status: 'success', data: { transaction: tx } });
 });
 
+/**
+ * @swagger
+ * /api/transactions/{id}:
+ *   put:
+ *     summary: Update a transaction (admin only)
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               amount:   { type: number }
+ *               type:     { type: string, enum: [income, expense] }
+ *               category: { type: string }
+ *               date:     { type: string }
+ *               notes:    { type: string }
+ *     responses:
+ *       200:
+ *         description: Transaction updated
+ *       404:
+ *         description: Transaction not found
+ */
 // ── PUT /api/transactions/:id ── admin only ───────────────────────────────────
 const updateRules = [
   param('id').isInt({ min: 1 }).withMessage('Invalid transaction ID.'),
@@ -167,6 +290,25 @@ router.put('/:id', authorize('admin'), updateRules, validate, (req, res) => {
   res.json({ status: 'success', data: { transaction: updated } });
 });
 
+/**
+ * @swagger
+ * /api/transactions/{id}:
+ *   delete:
+ *     summary: Soft-delete a transaction (admin only)
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Transaction deleted (soft)
+ *       404:
+ *         description: Transaction not found
+ */
 // ── DELETE /api/transactions/:id ── admin only (soft delete) ──────────────────
 router.delete('/:id', authorize('admin'), [
   param('id').isInt({ min: 1 }).withMessage('Invalid transaction ID.'),

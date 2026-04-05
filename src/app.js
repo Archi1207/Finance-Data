@@ -4,6 +4,8 @@ const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 
 const authRouter         = require('./routes/auth');
 const usersRouter        = require('./routes/users');
@@ -42,6 +44,9 @@ const authLimiter = rateLimit({
   message: { status: 'error', message: 'Too many login attempts, please try again later.' },
 });
 app.use('/api/auth/', authLimiter);
+
+// ── Swagger Docs ──────────────────────────────────────────────────────────────
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/auth',         authRouter);

@@ -1,3 +1,10 @@
+/**
+ * @swagger
+ * tags:
+ *   name: Users
+ *   description: User management (admin only)
+ */
+
 const express = require('express');
 const { body, param } = require('express-validator');
 const bcrypt = require('bcryptjs');
@@ -11,6 +18,33 @@ const SALT_ROUNDS = 10;
 // All user management routes require authentication
 router.use(authenticate);
 
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: List all users (admin only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema: { type: string, enum: [active, inactive] }
+ *       - in: query
+ *         name: role
+ *         schema: { type: string, enum: [viewer, analyst, admin] }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *     responses:
+ *       200:
+ *         description: Paginated list of users
+ *       403:
+ *         description: Forbidden — admin only
+ */
 // ── GET /api/users ── Admin only ──────────────────────────────────────────────
 router.get('/', authorize('admin'), (req, res) => {
   const { status, role, page = 1, limit = 20 } = req.query;

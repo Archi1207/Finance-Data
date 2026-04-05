@@ -1,3 +1,10 @@
+/**
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: Authentication — register, login, current user
+ */
+
 const { body } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const db = require('../config/database');
@@ -9,7 +16,34 @@ const { authenticate } = require('../middleware/auth');
 const router = express.Router();
 const SALT_ROUNDS = 10;
 
-// ── POST /api/auth/register ───────────────────────────────────────────────────
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, email, password]
+ *             properties:
+ *               name:     { type: string, example: Alice Admin }
+ *               email:    { type: string, example: alice@example.com }
+ *               password: { type: string, example: Secret123 }
+ *               role:     { type: string, enum: [viewer, analyst, admin], example: viewer }
+ *     responses:
+ *       201:
+ *         description: User created
+ *       409:
+ *         description: Email already in use
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 const registerRules = [
   body('name').trim().notEmpty().withMessage('Name is required.'),
   body('email').isEmail().normalizeEmail().withMessage('Valid email is required.'),
@@ -45,6 +79,32 @@ router.post('/register', registerRules, validate, (req, res) => {
   return res.status(201).json({ status: 'success', data: { user, token } });
 });
 
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Login and receive a JWT
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:    { type: string, example: admin@example.com }
+ *               password: { type: string, example: Admin123 }
+ *     responses:
+ *       200:
+ *         description: Login successful, returns user and token
+ *       401:
+ *         description: Invalid credentials
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
 const loginRules = [
   body('email').isEmail().normalizeEmail().withMessage('Valid email is required.'),
@@ -68,6 +128,24 @@ router.post('/login', loginRules, validate, (req, res) => {
   return res.json({ status: 'success', data: { user: safeUser, token } });
 });
 
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get the currently authenticated user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: No token provided
+ */
 // ── GET /api/auth/me ──────────────────────────────────────────────────────────
 router.get('/me', authenticate, (req, res) => {
   res.json({ status: 'success', data: { user: req.user } });
